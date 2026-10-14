@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dev_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD: dev_password
+      POSTGRES_DB: app_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:latest
+    container_name: my-redis
+    ports:
+        - '6379:6379'
+    volumes:
+        - redis-data:/data
+    command: redis-server --requirepass your_password_here --appendonly yes
+    restart: unless-stopped
+  api: 
+    build: .
+    container_name: dev_api
+    ports:
+    - "8000:8000"
+    depends_on:
+    - "postgres"
+    - "redis"
+  webapp:
+    environment:
+      - name=.env
+
+volumes:
+  pgdata:
+  redis-data:
+        driver: local
