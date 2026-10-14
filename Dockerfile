@@ -7,7 +7,7 @@ ENV POETRY_HTTP_TIMEOUT=300
 WORKDIR /app
 
 # 3. Ставим системные пакеты и сам Poetry
-RUN pip install poetry
+RUN pip install poetry==2.5.1
 
 # 4. Чтобы Poetry не создавал виртуальные окружения внутри Docker 
 # (ведь Docker сам по себе - изолированная среда!), мы меняем его настройки:

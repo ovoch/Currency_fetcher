@@ -4,9 +4,9 @@ services:
     container_name: dev_postgres
     restart: always
     environment:
-      POSTGRES_USER: dev_user
-      POSTGRES_PASSWORD: dev_password
-      POSTGRES_DB: app_db
+      POSTGRES_USER: ${DB_Username}
+      POSTGRES_PASSWORD: ${DB_Password}
+      POSTGRES_DB: ${DB_NameDatabase}
     ports:
       - "5432:5432"
     volumes:
@@ -19,7 +19,7 @@ services:
         - '6379:6379'
     volumes:
         - redis-data:/data
-    command: redis-server --requirepass your_password_here --appendonly yes
+    command: redis-server --requirepass ${REDIS_Password} --appendonly yes
     restart: unless-stopped
   api: 
     build: .
@@ -29,9 +29,8 @@ services:
     depends_on:
     - "postgres"
     - "redis"
-  webapp:
-    environment:
-      - name=.env
+    env_file:
+    - .env
 
 volumes:
   pgdata:

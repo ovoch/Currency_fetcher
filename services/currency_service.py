@@ -1,3 +1,4 @@
+from collections import defaultdict
 import decimal
 import json
 import logging
@@ -5,6 +6,7 @@ import asyncio
 import decimal
 from redis import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
+from repository.alerts_repository import AlertsRepository
 from services.external_api import currency_api
 from repository.currency_repostirory import CurrencyRepository
 from services.currency_service import CurrencyService
@@ -65,4 +67,47 @@ async def fetch_multiple_currencies(base: str, currencies : list[str], http_clie
     #     await db_session.add_all(одна_большая_пачка_данных_из_proper_resp)
     #     await db_session.commit()
         
-    return proper_resp       
+    return proper_resp    
+
+async def get_info_rates(http_client,redis_client, session):
+     
+        alerts = await AlertsRepository(session).get_alerts_from_db()
+        currency_dict = {}
+        for alert in alerts:
+            if alert.base_currency not in currency_dict:
+                currency_dict[alert.base_currency] = set()
+            if alert.base_currency in currency_dict:
+                currency_dict[alert.base_currency].add(alert.target_currency)
+                
+        currency_rates = await asyncio.gather(*[fetch_multiple_currencies(base, currency_dict.get(base), http_client, redis_client) for base in currency_dict])
+        
+        
+        dict_of_currency_rates = {element["base_curr"]: element["rates"] for element in currency_rates }
+        res = defaultdict(list)
+        current_rate = {}
+        for alert in alerts:
+            # current_rate = dict_of_currency_rates[alert.base_currency][alert.target_currency]
+            rates = dict_of_currency_rates.get(alert.base_currency, {})
+            current_rate = rates.get(alert.target_currency)
+
+            if current_rate is None:
+            # Валюта не загрузилась или упала по таймауту — пропускаем этот алерт
+                continue
+            if alert.condition == "less": 
+                if current_rate < alert.target_rate:
+                    res[alert.model_users.email].append({
+                        "base": alert.base_currency,
+                        "target": alert.target_currency,
+                        "current_rate": current_rate,
+                        "rate": alert.target_rate
+                    })
+            elif alert.condition == "more":
+                if current_rate > alert.target_rate:
+                    res[alert.model_users.email].append({
+                        "base": alert.base_currency,
+                        "target": alert.target_currency,
+                        "current_rate": current_rate,
+                        "rate": alert.target_rate
+                    })
+        return res
+        

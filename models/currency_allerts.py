@@ -17,11 +17,11 @@ class CurrencyAlerts(Base):
     __tablename__ = "currency_alerts"
     
     id: Mapped[int] = mapped_column(primary_key= True)
-    user_id : Mapped[int] = mapped_column(ForeignKey("users.id"), index = True, ondelete = "CASCADE")
+    user_id : Mapped[int] = mapped_column(ForeignKey("users.id", ondelete = "CASCADE"), index = True)
     base_currency: Mapped[str] = mapped_column()
     target_currency: Mapped[str] = mapped_column()
     target_rate : Mapped[decimal.Decimal] = mapped_column(Numeric(10, 4))
     condition : Mapped[Condition] = mapped_column()
     
     
-    model_users: Mapped['User'] = relationship('User', back_populates = 'alerts')
+    model_users: Mapped['User'] = relationship('User', back_populates = 'alerts',cascade="all, delete-orphan")
