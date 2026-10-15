@@ -27,7 +27,7 @@ def check_rates(self):
 async def async_check_rates():
     async with (async_session() as session,
         httpx.AsyncClient() as client,
-        redis.Redis(host= db.Host, port=6379, db=0, decode_responses=True, password= rd.Password) as redis_client):
+        redis.Redis(host= rd.Host, port=6379, db=0, decode_responses=True, password= rd.Password) as redis_client):
         res = await get_info_rates(client, redis_client, session)
             
         for key,value in res.items():
