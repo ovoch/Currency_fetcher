@@ -24,4 +24,4 @@ class CurrencyAlerts(Base):
     condition : Mapped[Condition] = mapped_column()
     
     
-    model_users: Mapped['User'] = relationship('User', back_populates = 'alerts',cascade="all, delete-orphan")
+    model_users: Mapped['User'] = relationship('User', back_populates = 'alerts')

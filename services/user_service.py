@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 from fastapi import HTTPException
 from redis import Redis
@@ -15,29 +15,28 @@ class UserService():
         self.redis_client = redis_client
        
     async def add_access_token_to_blacklist(self,access_token: str):
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         payload = verify_access_token(access_token)
         jti = payload.get("jti")
         experation_time = payload.get("exp")
-        token_time_left = now - datetime(experation_time)
-        redis_key = f"{jti}"
-        cached_data = self.redis_client.get(redis_key)
+        token_time_left = datetime.fromtimestamp(experation_time, tz=timezone.utc) - now
+        redis_key = f"blacklist:access:{jti}"
+        cached_data = await self.redis_client.get(redis_key)
         if not cached_data:
-            await self.redis_client.set(jti, exp = token_time_left)
+            await self.redis_client.set(redis_key, 1, ex = token_time_left)
         else : raise HTTPException(status_code= 401, detail="Token is expired")
         
     async def add_refresh_token_to_blacklist(self,refresh_token: str):
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         payload = verify_refresh_token(refresh_token)
         jti = payload.get("jti")
         experation_time = payload.get("exp")
-        token_time_left = now - datetime(experation_time)
-        redis_key = f"{jti}"
-        cached_data = self.redis_client.get(redis_key)
+        token_time_left = datetime.fromtimestamp(experation_time, tz=timezone.utc) - now
+        redis_key = f"blacklist:refresh:{jti}"
+        cached_data = await self.redis_client.get(redis_key)
         if not cached_data:
-            await self.redis_client.set(jti, exp = token_time_left)
+            await self.redis_client.set(redis_key,1, ex = token_time_left)
         else : raise HTTPException(status_code= 401, detail="Token is expired")
-        await self.redis_client.set(jti, exp = token_time_left)
         
     async def authenticate_user(self, email : str, password: str):
         user = await UserRepository(self.session).get_user_by_email(email)

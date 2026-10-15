@@ -10,7 +10,7 @@ from core.redis_config import r
 from services.user_service import UserService
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl = "login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl = "users/login")
 
 
 async def get_redis():
@@ -19,7 +19,7 @@ async def get_redis():
 async def get_current_user(access_token: Annotated[str, Depends(oauth2_scheme)], session : AsyncSession = Depends(get_db), redis_client : Redis = Depends(get_redis)):
     payload = verify_access_token(access_token)
     jti = payload.get("jti")
-    redis_key = f"{jti}"
+    redis_key = f"blacklist:access:{jti}"
     cached_data = await redis_client.get(redis_key)
     
     if not cached_data:

@@ -11,7 +11,6 @@ from core.redis_config import r
 
 
 router = APIRouter(prefix = "/users", tags = ["Users"]) 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 @router.post("", response_model=UserResponse)
 async def create_user(user_in : UserCreate, session: AsyncSession = Depends(get_db)):
@@ -31,7 +30,7 @@ async def read_current_user(current_user: User = Depends(get_current_user)):
 async def logout_user(access_token: str, session : AsyncSession = Depends(get_db)):
     await UserService(session,r).add_access_token_to_blacklist(access_token)
     
-@router.post("refresh/tokens")
+@router.post("/refresh/tokens")
 async def refresh_token(refresh_token: RefreshToken, session : AsyncSession = Depends(get_db),):
     tokens = await refresh_tokens(refresh_token.refresh_token,session)
     return tokens

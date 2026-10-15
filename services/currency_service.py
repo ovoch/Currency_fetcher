@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from repository.alerts_repository import AlertsRepository
 from services.external_api import currency_api
 from repository.currency_repostirory import CurrencyRepository
-from services.currency_service import CurrencyService
 
 class CurrencyService():
     def __init__(self,session : AsyncSession, redis_client : Redis):

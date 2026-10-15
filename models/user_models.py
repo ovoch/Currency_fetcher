@@ -23,7 +23,7 @@ class User(Base):
     
     
     currency_rates : Mapped[List['ExchangeRate']] = relationship('ExchangeRate', back_populates = 'main_users')
-    alerts: Mapped[List['CurrencyAlerts']] = relationship('CurrencyAlerts', back_populates = 'model_users')
+    alerts: Mapped[List['CurrencyAlerts']] = relationship('CurrencyAlerts', back_populates = 'model_users',passive_deletes=True, cascade="all, delete-orphan")
     
     def __repr__(self) -> str:
         return f"<User(id={self.id}, name={self.name})>"

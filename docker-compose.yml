@@ -26,9 +26,12 @@ services:
     container_name: dev_api
     ports:
     - "8000:8000"
+    volumes:
+    - .:/app
     depends_on:
     - "postgres"
     - "redis"
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     env_file:
     - .env
 
