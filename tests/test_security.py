@@ -1,3 +1,4 @@
+from http.client import HTTPException
 from unittest.mock import AsyncMock, patch
 import pytest
 from core.security import give_token, verify_token
@@ -10,7 +11,7 @@ def test_token():
     assert 5 == int(verify_token(give_token(5)).get("sub"))
     
 def test_PyError():
-    pytest.raises(PyJWTError, verify_token, token = "asdasd")
+    pytest.raises(HTTPException(status_code=401, detail="Invalid token", headers={"WWW-Authenticate": "Bearer"}), verify_token, token = "asdasd")
     
     
 @pytest.mark.asyncio   
