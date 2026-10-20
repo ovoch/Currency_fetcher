@@ -1,9 +1,9 @@
-from collections import defaultdict
 import decimal
 import json
 import logging
 import asyncio
 import decimal
+from collections import defaultdict
 from redis import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 from repository.alerts_repository import AlertsRepository
@@ -97,16 +97,17 @@ async def get_info_rates(http_client,redis_client, session):
                     res[alert.model_users.email].append({
                         "base": alert.base_currency,
                         "target": alert.target_currency,
-                        "current_rate": current_rate,
-                        "rate": alert.target_rate
+                        "current_rate": str(current_rate),
+                        "rate": str(alert.target_rate)
                     })
             elif alert.condition == "more":
                 if current_rate > alert.target_rate:
                     res[alert.model_users.email].append({
                         "base": alert.base_currency,
                         "target": alert.target_currency,
-                        "current_rate": current_rate,
-                        "rate": alert.target_rate
+                        "current_rate": str(current_rate),
+                        "rate": str(alert.target_rate)
                     })
+        
         return res
         

@@ -9,3 +9,11 @@ celery_app = Celery(
     include = ["tasks.email_task"]
 )
 
+celery_app.conf.beat_schedule = {
+    'check-rates-every-5-minutes': {
+        'task': 'check currency rates',
+        'schedule': 300.0
+    },
+}
+celery_app.conf.timezone = 'UTC'
+

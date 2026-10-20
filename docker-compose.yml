@@ -34,6 +34,36 @@ services:
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     env_file:
     - .env
+  celery_worker:
+    build: .
+    command: celery -A core.celery_config worker --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - postgres
+      - api
+    env_file:
+    - .env
+
+  celery_beat:
+    build: .
+    command: celery -A core.celery_config beat --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - postgres
+      - api
+    env_file:
+    - .env
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: dev_mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+      - "1025:1025"
 
 volumes:
   pgdata:
