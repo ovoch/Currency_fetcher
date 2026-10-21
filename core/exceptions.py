@@ -5,3 +5,6 @@ class CurrencyNotFoundError(Exception):
 
 class ExternalServiceError(Exception):
     pass
+
+class UserAlreadyExistsError(Exception):
+    pass

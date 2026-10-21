@@ -1,5 +1,7 @@
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select,text,update
+from core.exceptions import UserAlreadyExistsError
 from models.user_models import User
 
 class UserRepository():
@@ -9,7 +11,10 @@ class UserRepository():
     async def add(self,name : str, email: str, hashed_password: str):
         user = User(name = name, email = email, hashed_password = hashed_password)
         self.session.add(user)
-        await self.session.flush()
+        try:
+            await self.session.flush()
+        except(IntegrityError):
+            raise UserAlreadyExistsError() from None
         return user
         
     async def get_user_by_email(self,email):

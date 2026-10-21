@@ -1,5 +1,5 @@
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from core.depencies import get_current_user, refresh_tokens
+from fastapi.security import OAuth2PasswordRequestForm
+from core.depencies import get_current_user, refresh_tokens, oauth2_scheme
 from models.user_models import User
 from schemas.user_schemas import UserCreate,UserResponse,UserChangePassword,RefreshToken
 from repository.user_repository import UserRepository
@@ -7,7 +7,7 @@ from fastapi import APIRouter,Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_db
 from services.user_service import UserService
-from core.redis_config import r 
+from core.redis_config import r
 
 
 router = APIRouter(prefix = "/users", tags = ["Users"]) 
@@ -26,9 +26,11 @@ async def verify_user(form_data : OAuth2PasswordRequestForm = Depends(), session
 async def read_current_user(current_user: User = Depends(get_current_user)):
     return current_user
 
-@router.get("/logout")
-async def logout_user(access_token: str, session : AsyncSession = Depends(get_db)):
+@router.post("/logout")
+async def logout_user(refresh_token : RefreshToken, session : AsyncSession = Depends(get_db),access_token: str = Depends(oauth2_scheme)):
     await UserService(session,r).add_access_token_to_blacklist(access_token)
+    await UserService(session,r).add_refresh_token_to_blacklist(refresh_token.refresh_token)
+    return {"message":"Logout is successfuls"}
     
 @router.post("/refresh/tokens")
 async def refresh_token(refresh_token: RefreshToken, session : AsyncSession = Depends(get_db),):

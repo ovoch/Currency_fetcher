@@ -1,7 +1,7 @@
 import decimal
 import enum
 from typing import TYPE_CHECKING
-from sqlalchemy import ForeignKey,Enum, Numeric
+from sqlalchemy import ForeignKey,Numeric
 from models.base_models import Base
 from sqlalchemy.orm import mapped_column,Mapped
 from sqlalchemy.orm import relationship

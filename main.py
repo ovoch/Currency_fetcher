@@ -3,9 +3,8 @@ import httpx
 from fastapi import FastAPI,Request
 from api.users import router as users_router
 from fastapi.responses import JSONResponse
-from sqlalchemy.exc import IntegrityError
 from jwt.exceptions import PyJWTError
-from core.exceptions import CurrencyNotFoundError,ExternalServiceError
+from core.exceptions import CurrencyNotFoundError,ExternalServiceError, UserAlreadyExistsError
 from api.currency import router as currency_router
 from contextlib import asynccontextmanager
 from core.logger import logger_config
@@ -24,8 +23,8 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(currency_router)
 app.include_router(users_router)
 
-@app.exception_handler(IntegrityError)
-async def validation_exception_handler(request: Request, exc: IntegrityError):
+@app.exception_handler(UserAlreadyExistsError)
+async def validation_exception_handler(request: Request, exc: UserAlreadyExistsError):
     logger.warning("User exists")
     return JSONResponse(status_code=409, content={"detail": "User already exists"})
 

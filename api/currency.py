@@ -1,8 +1,6 @@
-import decimal
 import logging
 import httpx
 from fastapi import BackgroundTasks,APIRouter,Depends, Query
-from sqlalchemy import Numeric
 from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.currency_schemas import FetchCurrency,HistoryForUser
 from api.users import read_current_user
