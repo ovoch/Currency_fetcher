@@ -2,4 +2,4 @@ __pycache*
 *env
 .pytest_cache
 .vscode
-.celerybeat-schedule
+*celerybeat-schedule
