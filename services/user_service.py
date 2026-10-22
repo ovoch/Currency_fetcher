@@ -40,18 +40,14 @@ class UserService():
         
     async def authenticate_user(self, email : str, password: str):
         user = await UserRepository(self.session).get_user_by_email(email)
-    
-     # Отсекаем плохой сценарий №1: Юзера нет
+
         if not user:
             raise HTTPException(status_code=401, detail="Email or password is incorrect")
-        
-     # Отсекаем плохой сценарий №2: Пароль не совпал
+
         if not verify_password(password, user.hashed_password):
             raise HTTPException(status_code=401, detail="Email or password is incorrect")
-        
-     # Сюда код дойдет ТОЛЬКО если всё идеально
+
         tokens = give_tokens(user.id)
-     # По стандарту OAuth2 токен возвращают в виде словаря:
         return tokens
     
     async def create_user(self, name : str, email: str, password: str):
