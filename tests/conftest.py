@@ -1,0 +1,73 @@
+import httpx
+import pytest
+import redis.asyncio as redis
+from sqlalchemy import URL
+from core.database import db,get_db
+from sqlalchemy.ext.asyncio import async_sessionmaker,create_async_engine
+from core.depencies import get_redis
+from models.base_models import Base
+from main import app
+from core.redis_config import rd
+
+
+
+url_object = URL.create(
+        db.DriverDatabase,
+        username = db.Username,
+        password = db.Password, 
+        host = db.Host,
+        database = db.NameDatabaseTest
+    )
+
+test_engine = create_async_engine(url_object)
+async_session_test = async_sessionmaker(test_engine, expire_on_commit = True)
+
+@pytest.fixture(scope="session", autouse=True)
+async def setup_test_database():
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+        
+    yield
+        
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+
+@pytest.fixture(scope="function")
+async def db_session():
+
+        
+    connection = await test_engine.connect()
+    transaction = await connection.begin()
+    session = async_session_test(bind = connection)
+        
+    yield session
+        
+    await transaction.rollback()
+    await connection.close()
+    
+@pytest.fixture(scope = "session", autouse= True)
+async def redis_test():
+    red = redis.Redis(host= rd.Host, port=6379, db=1, decode_responses=True, password= rd.Password)
+    yield red
+        
+
+@pytest.fixture(scope = "function",autouse=True)
+async def py_clients(db_session,redis_test):
+        
+    async def override_get_db():
+        yield db_session
+        
+    async def override_get_redis():
+        yield redis_test
+    
+            
+    transport = httpx.ASGITransport(app=app)
+    
+    app.dependency_overrides[get_redis] = override_get_redis    
+    app.dependency_overrides[get_db] = override_get_db
+        
+    async with httpx.AsyncClient(transport=transport,base_url="http://test") as client:
+        yield client
+    
+    await redis_test.flushdb()       
+    app.dependency_overrides.clear()

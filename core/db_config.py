@@ -6,5 +6,6 @@ class DataBaseSettings(BaseSettings):
     Password: str
     Host: str
     NameDatabase: str 
+    NameDatabaseTest : str
     
     model_config = SettingsConfigDict(env_file='.env',env_prefix='DB_', extra='ignore')
