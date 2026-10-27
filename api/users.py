@@ -1,5 +1,5 @@
 from fastapi.security import OAuth2PasswordRequestForm
-from core.depencies import get_current_user, refresh_tokens, oauth2_scheme
+from core.depencies import get_current_user, get_redis, refresh_tokens, oauth2_scheme
 from models.user_models import User
 from schemas.user_schemas import UserCreate,UserResponse,UserChangePassword,RefreshToken
 from repository.user_repository import UserRepository
@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_db
 from services.user_service import UserService
 from core.redis_config import r
+from redis import Redis
 
 
 router = APIRouter(prefix = "/users", tags = ["Users"]) 
@@ -27,14 +28,14 @@ async def read_current_user(current_user: User = Depends(get_current_user)):
     return current_user
 
 @router.post("/logout")
-async def logout_user(refresh_token : RefreshToken, session : AsyncSession = Depends(get_db),access_token: str = Depends(oauth2_scheme)):
-    await UserService(session,r).add_access_token_to_blacklist(access_token)
-    await UserService(session,r).add_refresh_token_to_blacklist(refresh_token.refresh_token)
-    return {"message":"Logout is successfuls"}
+async def logout_user(refresh_token : RefreshToken, session : AsyncSession = Depends(get_db),redis_client: Redis = Depends(get_redis),access_token: str = Depends(oauth2_scheme)):
+    await UserService(session,redis_client).add_access_token_to_blacklist(access_token)
+    await UserService(session,redis_client).add_refresh_token_to_blacklist(refresh_token.refresh_token)
+    return {"message":"Logout is successful"}
     
 @router.post("/refresh/tokens")
-async def refresh_token(refresh_token: RefreshToken, session : AsyncSession = Depends(get_db),):
-    tokens = await refresh_tokens(refresh_token.refresh_token,session)
+async def refresh_token(refresh_token: RefreshToken, session : AsyncSession = Depends(get_db), redis_client: Redis = Depends(get_redis)):
+    tokens = await refresh_tokens(refresh_token.refresh_token,session,redis_client)
     return tokens
     
 

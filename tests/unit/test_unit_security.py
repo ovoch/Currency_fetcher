@@ -20,10 +20,10 @@ def test_generate_token_data():
     payload_refresh = verify_refresh_token(token_ref)
     assert "1" == payload_access.get("sub")
     assert "1" == payload_refresh.get("sub")
-    assert True == "jti" in payload_access
-    assert True == "exp" in payload_access
-    assert True == "jti" in payload_refresh
-    assert True == "exp" in payload_refresh
+    assert  "jti" in payload_access
+    assert  "exp" in payload_access
+    assert  "jti" in payload_refresh
+    assert  "exp" in payload_refresh
     assert "access" == payload_access.get("type")
     assert "refresh" == payload_refresh.get("type")
     

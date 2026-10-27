@@ -5,6 +5,7 @@ from core.database import db
 class Redis_Settings(BaseSettings):
     Password: str
     Host : str
+    HostTest : str
         
     model_config = SettingsConfigDict(env_file = ".env", env_prefix="REDIS_", extra ="ignore")
     

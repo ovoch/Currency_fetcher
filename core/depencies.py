@@ -30,12 +30,19 @@ async def get_current_user(access_token: Annotated[str, Depends(oauth2_scheme)],
     
     return user
 
-async def refresh_tokens(refresh_token : str, session: AsyncSession = Depends(get_db)):
+async def refresh_tokens(refresh_token : str, session: AsyncSession = Depends(get_db),redis_client : Redis = Depends(get_redis)):
     payload = verify_refresh_token(refresh_token)
-    user_id = int(payload.get("sub"))
-    await UserService(session,r).add_refresh_token_to_blacklist(refresh_token)
-    tokens = give_tokens(user_id)   
+    jti = payload.get("jti")
+    redis_key = f"blacklist:refresh:{jti}"
+    cached_data = await redis_client.get(redis_key)
     
+    if not cached_data:
+        user_id = payload.get("sub")
+        await UserService(session,r).add_refresh_token_to_blacklist(refresh_token)
+    else: 
+        raise HTTPException(status_code= 401, detail="This token is used")
+    
+    tokens = give_tokens(user_id)   
     return tokens 
     
 async def rate_limiter(request: Request):

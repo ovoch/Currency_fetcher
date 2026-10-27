@@ -13,11 +13,11 @@ url_object = URL.create(
     )
 
 engine = create_async_engine(url_object, echo=True)
-celery_engine = create_async_engine(url_object, echo = True, poolclass=NullPool )
+celery_engine = create_async_engine(url_object, echo = True, poolclass=NullPool)
 
 async_session_celery = async_sessionmaker(celery_engine, expire_on_commit= False)
 async_session = async_sessionmaker(engine, expire_on_commit=False)
-async_session_background = async_sessionmaker(engine,expire_on_commit= True)
+async_session_background = async_sessionmaker(engine,expire_on_commit= False)
 
 async def get_db():
     async with async_session() as session:
