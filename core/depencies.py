@@ -1,5 +1,5 @@
 from typing import Annotated
-from redis import Redis
+from redis.asyncio import Redis
 from core.database import get_db
 from core.security import verify_access_token,verify_refresh_token,give_tokens
 from repository.user_repository import UserRepository
@@ -38,7 +38,7 @@ async def refresh_tokens(refresh_token : str, session: AsyncSession = Depends(ge
     
     if not cached_data:
         user_id = payload.get("sub")
-        await UserService(session,r).add_refresh_token_to_blacklist(refresh_token)
+        await UserService(session,redis_client).add_refresh_token_to_blacklist(refresh_token)
     else: 
         raise HTTPException(status_code= 401, detail="This token is used")
     

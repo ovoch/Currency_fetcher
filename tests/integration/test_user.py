@@ -210,6 +210,35 @@ async def test_logout_success(py_clients,db_session):
     dict_out_refresh = answer_out_refresh.json()
     assert dict_out_refresh["detail"] == "This token is used"
 
-async def test_logout_fail(py_clients,db_session):    
+async def test_logout_fail(py_clients):    
     
+    tokens_in = give_tokens(1)
+    access_token_in = tokens_in["access_token"]
+    
+    answer_invalid_access = await py_clients.post("/users/logout", headers = {"Authorization": ""})
+    assert answer_invalid_access.status_code == 401
+    
+    answer_invalid_refresh = await py_clients.post("/users/logout", json = "ajsdnlaskdnaksjdbkasjd",headers = {"Authorization": f"Bearer {access_token_in}"})
+    assert answer_invalid_refresh.status_code == 422
+    
+async def test_refresh_tokens_access(py_clients):
+    
+    tokens_in = give_tokens(1)
+    refresh_token_in = tokens_in["refresh_token"]
+    refresh_token_dict = {"refresh_token" : f"{refresh_token_in}"}
+    
+    answer = await py_clients.post("/users/refresh/tokens", json = refresh_token_dict)
+    assert answer.status_code == 200
+    answer_dict = answer.json()
+    
+    assert "access_token" in answer_dict
+    assert "refresh_token" in answer_dict
+    assert "token_type" in answer_dict
+    assert answer_dict["refresh_token"] != refresh_token_in
+    
+    answer_old_refresh_blacklisted = await py_clients.post("/users/refresh/tokens", json = refresh_token_dict)
+    
+    assert answer_old_refresh_blacklisted.status_code == 401
+    answer_old_refresh_blacklisted_dict = answer_old_refresh_blacklisted.json()
+    assert answer_old_refresh_blacklisted_dict["detail"] == "This token is used"
     
