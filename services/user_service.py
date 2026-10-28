@@ -63,20 +63,12 @@ class UserService():
         return count
     
     async def change_password(self,password: str, new_password : str, hashed_password: str, user_id):
-        if password == new_password:
-            raise HTTPException(status_code=400, detail="New password must be new") 
         if not verify_password(password, hashed_password):
             logging.warning("Password is invalid")
             raise HTTPException(status_code= 400, detail="Password is invalid")
+        if password == new_password:
+            raise HTTPException(status_code=400, detail="New password must be new") 
         new_hashed_password = password_hashed(new_password)
         await UserRepository(self.session).change_password(new_hashed_password, user_id)
         await self.session.commit()
         logging.debug("Password is changed successfully")
-        return {"detail" : "Password is changed"}
-    
-    
-    
-        
-    
-        
-    

@@ -3,24 +3,24 @@ from core.depencies import get_current_user, get_redis, refresh_tokens, oauth2_s
 from models.user_models import User
 from schemas.user_schemas import UserCreate,UserResponse,UserChangePassword,RefreshToken
 from repository.user_repository import UserRepository
-from fastapi import APIRouter,Depends
+from fastapi import APIRouter,Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_db
 from services.user_service import UserService
 from core.redis_config import r
-from redis import Redis
+from redis.asyncio import Redis
 
 
 router = APIRouter(prefix = "/users", tags = ["Users"]) 
 
 @router.post("", response_model=UserResponse)
-async def create_user(user_in : UserCreate, session: AsyncSession = Depends(get_db)):
-    user = await UserService(session,r).create_user(user_in.name, user_in.email, user_in.password)
+async def create_user(user_in : UserCreate, session: AsyncSession = Depends(get_db),redis_client: Redis = Depends(get_redis)):
+    user = await UserService(session,redis_client).create_user(user_in.name, user_in.email, user_in.password)
     return user
 
 @router.post("/login")
-async def verify_user(form_data : OAuth2PasswordRequestForm = Depends(), session : AsyncSession = Depends(get_db)):
-    tokens = await UserService(session,r).authenticate_user(form_data.username, form_data.password)
+async def verify_user(form_data : OAuth2PasswordRequestForm = Depends(), session : AsyncSession = Depends(get_db),redis_client: Redis = Depends(get_redis)):
+    tokens = await UserService(session,redis_client).authenticate_user(form_data.username, form_data.password)
     return tokens
 
 @router.get("/me", response_model= UserResponse)
@@ -40,21 +40,20 @@ async def refresh_token(refresh_token: RefreshToken, session : AsyncSession = De
     
 
 @router.get("/count_users")
-async def count_users(session: AsyncSession = Depends(get_db)):
-    count = await UserService(session,r).count_users()
+async def count_users(session: AsyncSession = Depends(get_db),redis_client: Redis = Depends(get_redis)):
+    count = await UserService(session,redis_client).count_users()
     return count
 
 @router.get("/{email}", response_model= UserResponse)
 async def get_user_by_email(email: str,session : AsyncSession = Depends(get_db)):
     user = await UserRepository(session).get_user_by_email(email)
+    
+    if not user:
+        raise HTTPException(status_code = 404,detail="User is not found")
+    
     return user
 
 @router.patch("/me/change_password")
-async def change_password(passwords : UserChangePassword,current_user : User = Depends(get_current_user),session : AsyncSession = Depends(get_db)):
-    await UserService(session,r).change_password(passwords.password, passwords.new_password, current_user.hashed_password, current_user.id)
-
-
-
-    
-    
-    
+async def change_password(passwords : UserChangePassword,current_user : User = Depends(get_current_user),session : AsyncSession = Depends(get_db),redis_client: Redis = Depends(get_redis)):
+    await UserService(session,redis_client).change_password(passwords.password, passwords.new_password, current_user.hashed_password, current_user.id)
+    return {"message" : "Password is changed"}

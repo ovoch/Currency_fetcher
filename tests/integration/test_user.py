@@ -1,4 +1,4 @@
-from sqlalchemy import text
+from sqlalchemy import select, text
 from models.user_models import User
 from core.security import password_hashed,give_tokens
 from services.user_service import UserService
@@ -242,3 +242,131 @@ async def test_refresh_tokens_access(py_clients):
     answer_old_refresh_blacklisted_dict = answer_old_refresh_blacklisted.json()
     assert answer_old_refresh_blacklisted_dict["detail"] == "This token is used"
     
+async def test_refresh_tokens_fail(py_clients):
+    
+    refresh_dict_in = {"refresh_token": ""}
+    answer_invalid_token = await py_clients.post("/users/refresh/tokens", json = refresh_dict_in)
+    
+    assert answer_invalid_token.status_code == 401
+    answer_invalid_token_dict = answer_invalid_token.json()
+    assert answer_invalid_token_dict["detail"] == "Validation is failed"
+    
+    answer_pydantic_token = await py_clients.post("/users/refresh/tokens", json = "asdasdwqdas")
+    assert answer_pydantic_token.status_code == 422
+
+async def test_count_users_success(py_clients,db_session):
+    
+    answer_no_users = await py_clients.get("/users/count_users")
+    assert answer_no_users.status_code == 200
+    assert answer_no_users.json() == 0
+    
+    hash_password = password_hashed("123456")
+    
+    user = User(
+        name = "Ars",
+        email = "lol@test.com",
+        hashed_password = hash_password,
+        is_active = True)
+    
+    db_session.add(user)
+    await db_session.flush()
+    
+    answer_no_users = await py_clients.get("/users/count_users")
+    assert answer_no_users.status_code == 200
+    assert answer_no_users.json() == 1
+    
+async def test_email_success(py_clients,db_session):
+    
+    hash_password_in = password_hashed("123456")
+    email_in = "lol@test.com"
+    
+    user = User(
+        name = "Ars",
+        email = email_in,
+        hashed_password = hash_password_in,
+        is_active = True) 
+    
+    db_session.add(user)
+    await db_session.flush()
+    
+    answer = await py_clients.get(f"/users/{email_in}", params = {"email" : f"{email_in}"})
+    assert answer.status_code == 200
+    answer_dict = answer.json()
+    
+    assert "password" not in answer_dict
+    assert "hashed_password" not in answer_dict
+    assert answer_dict["name"] == user.name
+    assert answer_dict["email"] == user.email
+    assert isinstance(answer_dict["id"],int)
+    
+async def test_email_fail(py_clients):
+    
+    
+    answer = await py_clients.get("/users/notfound@test.com")
+    assert answer.status_code == 404
+    answer_dict = answer.json()
+    
+    assert answer_dict["detail"] == "User is not found"
+    
+async def test_change_password_success(py_clients,db_session):
+    
+    password = "123456"
+    new_password = "1234567"
+    password_in = {"password": f"{password}", "new_password" : f"{new_password}"}
+    hash_password_in = password_hashed(password)
+    
+    user = User(
+        name = "Ars",
+        email = "lol@test.com",
+        hashed_password = hash_password_in,
+        is_active = True) 
+    
+    db_session.add(user)
+    await db_session.flush()
+    
+    tokens_in = give_tokens(user.id)
+    access_token = tokens_in["access_token"]
+    
+    answer = await py_clients.patch("/users/me/change_password",headers = {"Authorization":f"Bearer {access_token}"}, json = password_in)
+    assert answer.status_code == 200
+    
+    query = select(User).where(User.email == "lol@test.com")
+    result = await db_session.execute(query)
+    user_new_password =result.scalar_one_or_none()
+    
+    assert user_new_password.hashed_password != hash_password_in
+    assert user_new_password.hashed_password != new_password
+    
+async def test_change_password_fail(py_clients,db_session):
+    
+    password = "123456"
+    new_password = "1234567"
+    password_invalid = "12345"
+    new_password_same = "123456"
+    password_in_invalid = {"password": f"{password_invalid}", "new_password" : f"{new_password}"}
+    password_in_same = {"password": f"{password}", "new_password" : f"{new_password_same}"}
+    hash_password_in = password_hashed(password)
+    
+    user = User(
+        name = "Ars",
+        email = "lol@test.com",
+        hashed_password = hash_password_in,
+        is_active = True)
+    
+    db_session.add(user)
+    await db_session.flush()
+    
+    tokens_in = give_tokens(user.id)
+    access_token = tokens_in["access_token"]
+    
+    answer_invalid = await py_clients.patch("/users/me/change_password",headers = {"Authorization":f"Bearer {access_token}"}, json = password_in_invalid)
+    assert answer_invalid.status_code == 400
+    
+    answer_invalid_dict = answer_invalid.json()
+    assert answer_invalid_dict["detail"] == "Password is invalid"
+    
+    answer_same = await py_clients.patch("/users/me/change_password",headers = {"Authorization":f"Bearer {access_token}"}, json = password_in_same)
+    assert answer_same.status_code == 400
+    
+    answer_same_dict = answer_same.json()
+    assert answer_same_dict["detail"] == "New password must be new"
