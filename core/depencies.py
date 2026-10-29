@@ -45,12 +45,12 @@ async def refresh_tokens(refresh_token : str, session: AsyncSession = Depends(ge
     tokens = give_tokens(user_id)   
     return tokens 
     
-async def rate_limiter(request: Request):
+async def rate_limiter(request: Request,redis_client : Redis = Depends(get_redis)):
     client_ip = request.client.host
     key = f'request user:{client_ip}'
-    current_count = await r.incr(key)
+    current_count = await redis_client.incr(key)
     if current_count == 1:
-        await r.expire(key,3600)
+        await redis_client.expire(key,3600)
     if current_count >= 10:
         raise HTTPException(status_code= 429, detail="Too many requests")
     return current_count

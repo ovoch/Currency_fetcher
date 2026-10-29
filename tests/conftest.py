@@ -4,7 +4,7 @@ import redis.asyncio as redis
 from sqlalchemy import URL, NullPool
 from core.database import db,get_db
 from sqlalchemy.ext.asyncio import async_sessionmaker,create_async_engine
-from core.depencies import get_redis
+from core.depencies import get_http_client, get_redis
 from models.base_models import Base
 from main import app
 from core.redis_config import rd
@@ -32,6 +32,15 @@ async def setup_test_database():
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
+
+async def handler(request: httpx.Request):
+    if request.url.path.endswith("/latest") and request.url.params.get("base") == "USD":
+        return httpx.Response(
+            200,json={"base": "USD", "rates": {"EUR": "1.254"}}, request= request
+        )
+    return httpx.Response(404, json = {"error":"Invalid request"}, request= request)
+    
+    
 @pytest.fixture(scope="function")
 async def db_session():
 
@@ -63,13 +72,19 @@ async def py_clients(db_session,redis_test):
     async def override_get_redis():
         yield redis_test
     
+    async def override_get_http_client():
+        transport_http = httpx.MockTransport(handler)
+        client = httpx.AsyncClient(transport=transport_http)
+        yield client
             
     transport = httpx.ASGITransport(app=app)
     
+    
     app.dependency_overrides[get_redis] = override_get_redis    
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_http_client] = override_get_http_client
         
-    async with httpx.AsyncClient(transport=transport,base_url="http://test") as client:
+    async with (httpx.AsyncClient(transport=transport,base_url="http://test") as client,):
         yield client
            
     app.dependency_overrides.clear()

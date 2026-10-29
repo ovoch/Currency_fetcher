@@ -289,7 +289,7 @@ async def test_email_success(py_clients,db_session):
     db_session.add(user)
     await db_session.flush()
     
-    answer = await py_clients.get(f"/users/{email_in}", params = {"email" : f"{email_in}"})
+    answer = await py_clients.get(f"/users/{email_in}")
     assert answer.status_code == 200
     answer_dict = answer.json()
     

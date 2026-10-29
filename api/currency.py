@@ -6,8 +6,8 @@ from schemas.currency_schemas import FetchCurrency,HistoryForUser
 from api.users import read_current_user
 from core.database import get_db
 from models.user_models import User
-from core.depencies import get_http_client,rate_limiter
-from core.redis_config import r
+from core.depencies import get_http_client,rate_limiter,get_redis
+from redis.asyncio import Redis
 from repository.currency_repostirory import CurrencyRepository
 from services.currency_service import CurrencyService,fetch_multiple_currencies
 from services.audit_service import save_audit_log_background
@@ -25,9 +25,10 @@ async def fetch_currency(
     session: AsyncSession = Depends(get_db),
     current_user: User = Depends(read_current_user),
     limiter : int = Depends(rate_limiter),
-    http_client : httpx.AsyncClient = Depends(get_http_client)):
+    http_client : httpx.AsyncClient = Depends(get_http_client),
+    redis_client: Redis = Depends(get_redis)):
     
-    currency = await CurrencyService(session,r).save_currency(currencys_in.base, currencys_in.target,current_user.id, http_client)
+    currency = await CurrencyService(session,redis_client).save_currency(currencys_in.base, currencys_in.target,current_user.id, http_client)
     return currency
 
 @router.get("/history", response_model= list[HistoryForUser] )
